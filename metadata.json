@@ -1,0 +1,6 @@
+{
+  "name": "合作廠商特約優惠與合約管理系統",
+  "description": "提供公司同仁查詢合作特約廠商優惠，支援類別篩選、關鍵字搜尋，並提供合約到期提醒、新增、編輯與刪除之管理後台。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
