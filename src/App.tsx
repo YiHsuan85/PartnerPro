@@ -30,9 +30,25 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Vendor, Category, ContractAlert } from './types';
 import { INITIAL_VENDORS } from './data';
 
-// Pin current simulated local date for reliable demo calculations
-const CURRENT_DATE_STR = '2026-07-02';
-const CURRENT_DATE = new Date(CURRENT_DATE_STR);
+// Get Taipei Time (GMT+8) dynamic today date
+const getTaipeiToday = (): Date => {
+  const now = new Date();
+  const tzOffset = 8 * 60; // Taipei timezone offset in minutes (+480)
+  const taipeiTime = new Date(now.getTime() + (now.getTimezoneOffset() + tzOffset) * 60 * 1000);
+  taipeiTime.setHours(0, 0, 0, 0);
+  return taipeiTime;
+};
+
+const getTaipeiTodayString = (): string => {
+  const taipeiDate = getTaipeiToday();
+  const year = taipeiDate.getFullYear();
+  const month = String(taipeiDate.getMonth() + 1).padStart(2, '0');
+  const day = String(taipeiDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const CURRENT_DATE_STR = getTaipeiTodayString();
+const CURRENT_DATE = getTaipeiToday();
 
 export default function App() {
   // --- States ---
@@ -79,13 +95,27 @@ export default function App() {
     const stored = localStorage.getItem('company_vendors_data');
     if (stored) {
       try {
-        setVendors(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const mapped = parsed.map((v: any, idx: number) => ({
+          ...v,
+          id: v.id || `v-${idx + 1}`
+        }));
+        setVendors(mapped);
       } catch (e) {
-        setVendors(INITIAL_VENDORS);
+        const defaultWithIds = INITIAL_VENDORS.map((v, idx) => ({
+          ...v,
+          id: `v-${idx + 1}`
+        }));
+        setVendors(defaultWithIds);
+        localStorage.setItem('company_vendors_data', JSON.stringify(defaultWithIds));
       }
     } else {
-      setVendors(INITIAL_VENDORS);
-      localStorage.setItem('company_vendors_data', JSON.stringify(INITIAL_VENDORS));
+      const defaultWithIds = INITIAL_VENDORS.map((v, idx) => ({
+        ...v,
+        id: `v-${idx + 1}`
+      }));
+      setVendors(defaultWithIds);
+      localStorage.setItem('company_vendors_data', JSON.stringify(defaultWithIds));
     }
   }, []);
 
@@ -105,8 +135,14 @@ export default function App() {
 
   // --- Date Math Helpers ---
   const getDaysRemaining = (expiryDateStr: string): number => {
-    const expiry = new Date(expiryDateStr);
-    const diffTime = expiry.getTime() - CURRENT_DATE.getTime();
+    if (!expiryDateStr) return 0;
+    const [year, month, day] = expiryDateStr.split('-').map(Number);
+    const expiryUTC = Date.UTC(year, month - 1, day);
+    
+    const taipeiToday = getTaipeiToday();
+    const todayUTC = Date.UTC(taipeiToday.getFullYear(), taipeiToday.getMonth(), taipeiToday.getDate());
+    
+    const diffTime = expiryUTC - todayUTC;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
@@ -220,8 +256,6 @@ export default function App() {
     if (!formName.trim()) errors.name = '請輸入店家名稱';
     if (!formDiscount.trim()) errors.discount = '請輸入優惠內容';
     if (!formContractEnd) errors.contractEnd = '請選擇合約期限';
-    if (!formAddress.trim()) errors.address = '請輸入店家住址';
-    if (!formPhone.trim()) errors.phone = '請輸入電話號碼';
     
     // Simple phone regex or length check
     if (formPhone.trim() && !/^[\d\s\-\(\)\+]{5,20}$/.test(formPhone)) {
@@ -711,23 +745,33 @@ export default function App() {
                       <div className="md:col-span-5 space-y-6">
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">住址</label>
-                          <p className="text-slate-700 text-sm leading-relaxed">{selectedVendor.address}</p>
-                          <a 
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVendor.name + ' ' + selectedVendor.address)}`}
-                            target="_blank"
-                            referrerPolicy="no-referrer"
-                            className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold mt-1"
-                          >
-                            <span>在 Google 地圖上查看</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
+                          {selectedVendor.address ? (
+                            <>
+                              <p className="text-slate-700 text-sm leading-relaxed">{selectedVendor.address}</p>
+                              <a 
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVendor.name + ' ' + selectedVendor.address)}`}
+                                target="_blank"
+                                referrerPolicy="no-referrer"
+                                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold mt-1"
+                              >
+                                <span>在 Google 地圖上查看</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </>
+                          ) : (
+                            <p className="text-slate-400 text-sm italic">未提供住址</p>
+                          )}
                         </div>
                         
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">聯絡電話</label>
-                          <p className="text-indigo-600 font-bold text-lg font-mono">
-                            {selectedVendor.phone}
-                          </p>
+                          {selectedVendor.phone ? (
+                            <p className="text-indigo-600 font-bold text-lg font-mono">
+                              {selectedVendor.phone}
+                            </p>
+                          ) : (
+                            <p className="text-slate-400 text-sm italic">未提供電話</p>
+                          )}
                         </div>
                       </div>
 
@@ -862,12 +906,16 @@ export default function App() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">連絡電話</div>
-                        <a 
-                          href={`tel:${selectedVendor.phone}`}
-                          className="text-sm font-semibold text-indigo-600 hover:underline mt-0.5 inline-block font-mono"
-                        >
-                          {selectedVendor.phone}
-                        </a>
+                        {selectedVendor.phone ? (
+                          <a 
+                            href={`tel:${selectedVendor.phone}`}
+                            className="text-sm font-semibold text-indigo-600 hover:underline mt-0.5 inline-block font-mono"
+                          >
+                            {selectedVendor.phone}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-slate-400 italic block mt-0.5">未提供電話</span>
+                        )}
                       </div>
                     </div>
 
@@ -878,19 +926,25 @@ export default function App() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">廠商住址</div>
-                        <div className="text-sm font-semibold text-slate-800 mt-0.5 leading-relaxed">
-                          {selectedVendor.address}
-                        </div>
+                        {selectedVendor.address ? (
+                          <div className="text-sm font-semibold text-slate-800 mt-0.5 leading-relaxed">
+                            {selectedVendor.address}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400 italic block mt-0.5">未提供住址</span>
+                        )}
                       </div>
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVendor.name + ' ' + selectedVendor.address)}`}
-                        target="_blank"
-                        referrerPolicy="no-referrer"
-                        className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline font-bold shrink-0 self-center border border-indigo-100 px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 transition"
-                      >
-                        <span>地圖</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {selectedVendor.address && (
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedVendor.name + ' ' + selectedVendor.address)}`}
+                          target="_blank"
+                          referrerPolicy="no-referrer"
+                          className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline font-bold shrink-0 self-center border border-indigo-100 px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 transition"
+                        >
+                          <span>地圖</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
 
                   </div>
@@ -1044,13 +1098,13 @@ export default function App() {
                     {/* Contact Phone */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                        電話號碼 <span className="text-rose-500">*</span>
+                        電話號碼
                       </label>
                       <input
                         type="text"
                         value={formPhone}
                         onChange={(e) => setFormPhone(e.target.value)}
-                        placeholder="例如：02-2362-0000"
+                        placeholder="例如：02-2362-0000 (選填)"
                         className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 border rounded-xl outline-none focus:bg-white focus:border-indigo-500 font-mono transition ${
                           formErrors.phone ? 'border-rose-300 ring-2 ring-rose-50' : 'border-slate-200'
                         }`}
@@ -1065,22 +1119,15 @@ export default function App() {
                     {/* Address */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                        店家住址 <span className="text-rose-500">*</span>
+                        店家住址
                       </label>
                       <input
                         type="text"
                         value={formAddress}
                         onChange={(e) => setFormAddress(e.target.value)}
-                        placeholder="例如：台北市大安區新生南路三段 88 號 1 樓"
-                        className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 border rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition ${
-                          formErrors.address ? 'border-rose-300 ring-2 ring-rose-50' : 'border-slate-200'
-                        }`}
+                        placeholder="例如：台北市大安區新生南路三段 88 號 1 樓 (選填)"
+                        className={`w-full px-3.5 py-2.5 text-sm bg-slate-50 border rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition border-slate-200`}
                       />
-                      {formErrors.address && (
-                        <p className="text-xs text-rose-500 mt-1.5">
-                          ⚠️ {formErrors.address}
-                        </p>
-                      )}
                     </div>
 
                     {/* Discount content */}
