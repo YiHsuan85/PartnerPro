@@ -472,61 +472,6 @@ export default function App() {
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6">
 
-        {/* Contract Alert Box - Expiring Soon banner */}
-        {alerts.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-amber-50/50 border border-amber-200/70 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
-          >
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0 mt-0.5">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-amber-900 text-base">合約期限即將到期提醒</h3>
-                <p className="text-sm text-amber-800 mt-0.5">
-                  目前有 <strong className="font-bold text-rose-600">{alerts.filter(a => a.status === 'expired').length}</strong> 家合約已逾期，以及 <strong className="font-bold text-amber-600">{alerts.filter(a => a.status === 'warning').length}</strong> 家廠商在 30 天內即將到期。
-                </p>
-              </div>
-            </div>
-            
-            {/* Quick Actions for Expiry Filtering */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button 
-                onClick={() => {
-                  setSelectedStatus('expired');
-                  setSelectedCategory('全部');
-                  showToast('已篩選：已逾期合約', 'info');
-                }}
-                className="px-3.5 py-1.5 bg-rose-100/60 hover:bg-rose-100 text-rose-800 text-xs font-medium rounded-lg transition"
-              >
-                已逾期 ({alerts.filter(a => a.status === 'expired').length})
-              </button>
-              <button 
-                onClick={() => {
-                  setSelectedStatus('warning');
-                  setSelectedCategory('全部');
-                  showToast('已篩選：即將到期合約', 'info');
-                }}
-                className="px-3.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-medium rounded-lg transition"
-              >
-                即將到期 ({alerts.filter(a => a.status === 'warning').length})
-              </button>
-              {selectedStatus !== 'all' && (
-                <button 
-                  onClick={() => {
-                    setSelectedStatus('all');
-                  }}
-                  className="px-2.5 py-1.5 text-amber-700 hover:text-amber-900 text-xs font-semibold underline"
-                >
-                  清除狀態篩選
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-
         {/* Filter and Search Panel */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-xs p-4 sm:p-5 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
