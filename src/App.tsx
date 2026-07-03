@@ -460,7 +460,7 @@ export default function App() {
           <div className="w-10 h-10 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-xl">P</div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">PartnerPro</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">奇美特約</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">合作廠商特約優惠與合約管理系統</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
